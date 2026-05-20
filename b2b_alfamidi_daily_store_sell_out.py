@@ -91,52 +91,46 @@ try:
     wait = WebDriverWait(driver, 15)
     wait.until(EC.presence_of_element_located((By.CLASS_NAME, "switch-dashboard")))
     print("Page loaded (switch-dashboard found).")
+    time.sleep(2)
 
-    # ---------- CLICK "Report Modular" (fallback to direct navigation) ----------
+    # ---------- CLICK "Report Modular" by simulating the onclick ----------
     try:
-        modular_link = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.LINK_TEXT, "Report Modular"))
+        # Find the label that has the onclick attribute
+        modular_label = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//label[@onclick=\"location.href='performancesales-modular'\"]"))
         )
-        modular_link.click()
-        print("Clicked 'Report Modular' using link text.")
-    except:
+        modular_label.click()
+        print("Clicked 'Report Modular' via label onclick.")
+    except Exception as e:
+        print(f"Label click failed: {e}")
+        # Fallback: find the gold-font link
         try:
-            modular_link = WebDriverWait(driver, 5).until(
-                EC.element_to_be_clickable((By.CSS_SELECTOR, "a.white-font[href='performancesales-modular']"))
-            )
+            modular_link = driver.find_element(By.CSS_SELECTOR, "a.gold-font[href='performancesales-modular']")
             modular_link.click()
-            print("Clicked 'Report Modular' using CSS selector (white-font).")
+            print("Clicked 'Report Modular' via gold-font link.")
         except:
-            print("Could not click link, navigating directly to performancesales-modular")
-            driver.get("https://b2b.alfamidiku.com/performancesales-modular")
+            # Last resort: execute the onclick JavaScript directly
+            print("Using JavaScript to trigger location.href")
+            driver.execute_script("location.href='performancesales-modular';")
     
-    # ---------- CRITICAL: Wait for the report page to fully load ----------
-    print("Waiting for report page to load...")
-    time.sleep(5)  # Give extra time for the page to render
-    print(f"Current URL after navigation: {driver.current_url}")
+    # Wait for the report page to load
+    time.sleep(5)
+    print(f"Current URL: {driver.current_url}")
     print(f"Page title: {driver.title}")
-    
-    # Save page source for debugging (temporary)
-    with open("report_page_source.html", "w", encoding="utf-8") as f:
-        f.write(driver.page_source)
-    print("Saved report page source to report_page_source.html")
-    
-    # ---------- SELECT "Performance by Item by Store by Day" ----------
-    # Wait specifically for the jenis_performace dropdown – use a longer timeout
+
+    # ---------- WAIT FOR THE REPORT PAGE ELEMENTS ----------
+    wait = WebDriverWait(driver, 30)
     try:
-        jenis_dropdown = WebDriverWait(driver, 30).until(
-            EC.presence_of_element_located((By.ID, "jenis_performace"))
-        )
+        # Wait for the jenis_performace dropdown to be present
+        jenis_dropdown = wait.until(EC.presence_of_element_located((By.ID, "jenis_performace")))
         print("Found jenis_performace dropdown.")
     except Exception as e:
-        print(f"Could not find jenis_performace dropdown: {e}")
-        # Try to find any select element as fallback
-        selects = driver.find_elements(By.TAG_NAME, "select")
-        print(f"Found {len(selects)} select elements on the page.")
-        for idx, sel in enumerate(selects):
-            print(f"  Select {idx}: id={sel.get_attribute('id')}, name={sel.get_attribute('name')}")
+        print("Could not find jenis_performace. Saving page source for debugging.")
+        with open("report_page_source.html", "w", encoding="utf-8") as f:
+            f.write(driver.page_source)
         raise
-    
+
+    # ---------- SELECT "Performance by Item by Store by Day" ----------
     jenis_performance = Select(jenis_dropdown)
     jenis_performance.select_by_value("4")
     print("Selected 'Performance by Item by Store by Day'.")
