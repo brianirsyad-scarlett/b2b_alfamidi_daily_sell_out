@@ -1,0 +1,35 @@
+name: B2B Alfamidi Daily Branch Sell Out
+
+on:
+  schedule:
+    - cron: '0 7,22 * * *'
+  workflow_dispatch:
+
+jobs:
+  run-script:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install selenium webdriver-manager pytz
+
+      - name: Run Alfamidi Daily Branch Sell Out
+        run: python b2b_alfamidi_daily_branch_sell_out.py
+        continue-on-error: true
+
+      - name: Upload debug artifacts on failure
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-files-alfamidi-branch
+          path: |
+            error_screenshot.png
+            page_source.html
