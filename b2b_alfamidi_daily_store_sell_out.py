@@ -18,16 +18,13 @@ from datetime import datetime, timedelta
 # ---------- AUTO DATE CALCULATION (Jakarta Time) ----------
 jakarta_tz = pytz.timezone('Asia/Jakarta')
 today = datetime.now(jakarta_tz)
-
 end_date = today - timedelta(days=2)
 start_date = datetime(today.year, today.month, 1, tzinfo=jakarta_tz)
-
 if end_date < start_date:
     if today.month == 1:
         start_date = datetime(today.year - 1, 12, 1, tzinfo=jakarta_tz)
     else:
         start_date = datetime(today.year, today.month - 1, 1, tzinfo=jakarta_tz)
-
 START_DATE = start_date.strftime("%d-%m-%Y")
 END_DATE   = end_date.strftime("%d-%m-%Y")
 print(f"Auto date range (Jakarta time): {START_DATE} → {END_DATE}")
@@ -49,7 +46,7 @@ try:
     driver.find_element(By.CSS_SELECTOR, "input[type='submit'][value='Login']").click()
     time.sleep(3)
 
-    # ---------- CLOSE POPUP (if any) ----------
+    # ---------- CLOSE POPUP ----------
     try:
         wait = WebDriverWait(driver, 5)
         overlay = wait.until(EC.presence_of_element_located((By.ID, "promoOverlay")))
@@ -95,7 +92,7 @@ try:
     wait.until(EC.presence_of_element_located((By.CLASS_NAME, "switch-dashboard")))
     print("Page loaded (switch-dashboard found).")
 
-    # ---------- CLICK "Report Modular" ----------
+    # ---------- CLICK "Report Modular" (fallback to direct navigation) ----------
     try:
         modular_link = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.LINK_TEXT, "Report Modular"))
@@ -105,18 +102,41 @@ try:
     except:
         try:
             modular_link = WebDriverWait(driver, 5).until(
-                EC.element_to_be_clickable((By.CSS_SELECTOR, "a.gold-font[href='performancesales-modular']"))
+                EC.element_to_be_clickable((By.CSS_SELECTOR, "a.white-font[href='performancesales-modular']"))
             )
             modular_link.click()
-            print("Clicked 'Report Modular' using CSS selector.")
+            print("Clicked 'Report Modular' using CSS selector (white-font).")
         except:
             print("Could not click link, navigating directly to performancesales-modular")
             driver.get("https://b2b.alfamidiku.com/performancesales-modular")
-    time.sleep(4)
-
-    # ---------- SELECT "Performance by Item by Store by Day" (value="4") ----------
-    wait = WebDriverWait(driver, 15)
-    jenis_dropdown = wait.until(EC.presence_of_element_located((By.ID, "jenis_performace")))
+    
+    # ---------- CRITICAL: Wait for the report page to fully load ----------
+    print("Waiting for report page to load...")
+    time.sleep(5)  # Give extra time for the page to render
+    print(f"Current URL after navigation: {driver.current_url}")
+    print(f"Page title: {driver.title}")
+    
+    # Save page source for debugging (temporary)
+    with open("report_page_source.html", "w", encoding="utf-8") as f:
+        f.write(driver.page_source)
+    print("Saved report page source to report_page_source.html")
+    
+    # ---------- SELECT "Performance by Item by Store by Day" ----------
+    # Wait specifically for the jenis_performace dropdown – use a longer timeout
+    try:
+        jenis_dropdown = WebDriverWait(driver, 30).until(
+            EC.presence_of_element_located((By.ID, "jenis_performace"))
+        )
+        print("Found jenis_performace dropdown.")
+    except Exception as e:
+        print(f"Could not find jenis_performace dropdown: {e}")
+        # Try to find any select element as fallback
+        selects = driver.find_elements(By.TAG_NAME, "select")
+        print(f"Found {len(selects)} select elements on the page.")
+        for idx, sel in enumerate(selects):
+            print(f"  Select {idx}: id={sel.get_attribute('id')}, name={sel.get_attribute('name')}")
+        raise
+    
     jenis_performance = Select(jenis_dropdown)
     jenis_performance.select_by_value("4")
     print("Selected 'Performance by Item by Store by Day'.")
@@ -136,7 +156,7 @@ try:
     driver.execute_script("arguments[0].dispatchEvent(new Event('change'))", end_input)
     print(f"Periode set: {START_DATE} to {END_DATE}")
 
-    # ---------- LOOP THROUGH CATEGORIES (only 5) + UNITS ----------
+    # ---------- LOOP THROUGH CATEGORIES + UNITS ----------
     categories = [
         ("3251", "BODY LOTION"),
         ("3252", "BODY SERUM"),
