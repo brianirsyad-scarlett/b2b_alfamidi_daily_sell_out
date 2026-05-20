@@ -41,15 +41,15 @@ service = Service(ChromeDriverManager().install())
 driver = webdriver.Chrome(service=service, options=options)
 
 try:
-    # ---------- LOGIN (no 2FA) ----------
+    # ---------- LOGIN ----------
     driver.get("https://b2b.alfamidiku.com/login.php")
     time.sleep(2)
     driver.find_element(By.NAME, "uname").send_keys(USERNAME)
     driver.find_element(By.NAME, "upass").send_keys(PASSWORD)
     driver.find_element(By.CSS_SELECTOR, "input[type='submit'][value='Login']").click()
-    time.sleep(3)  # Wait for dashboard
+    time.sleep(3)
 
-    # ---------- CLOSE ANY POPUP (if exists) ----------
+    # ---------- CLOSE POPUP (if any) ----------
     try:
         wait = WebDriverWait(driver, 5)
         overlay = wait.until(EC.presence_of_element_located((By.ID, "promoOverlay")))
@@ -136,18 +136,11 @@ try:
     driver.execute_script("arguments[0].dispatchEvent(new Event('change'))", end_input)
     print(f"Periode set: {START_DATE} to {END_DATE}")
 
-    # ---------- LOOP THROUGH CATEGORIES + UNITS ----------
+    # ---------- LOOP THROUGH CATEGORIES (only 5) + UNITS ----------
     categories = [
-        ("3222", "BEAUTY LIQUID SOAP"),
         ("3251", "BODY LOTION"),
-        ("3253", "BODY SCRUB"),
         ("3252", "BODY SERUM"),
-        ("3246", "FACE MASK"),
-        ("3243", "FACIAL CLEANSER TONIC"),
         ("3241", "FACIAL WASH SOAP"),
-        ("3245", "MOISTURIZER"),
-        ("8012", "PROMOTION GOODS MEMBER"),
-        ("3249", "SERUM ESSENCE"),
         ("3240", "SUNSCREEN"),
         ("3232", "WOMEN PARFUME & EDT")
     ]
@@ -191,8 +184,9 @@ except Exception as e:
     print(f"An error occurred: {e}")
     try:
         driver.save_screenshot("error_screenshot.png")
-        with open("page_source.html", "w") as f:
+        with open("page_source.html", "w", encoding="utf-8") as f:
             f.write(driver.page_source)
+        print("Saved error screenshot and page source")
     except:
         pass
     time.sleep(30)
