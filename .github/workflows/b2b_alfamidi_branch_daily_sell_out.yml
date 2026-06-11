@@ -2,7 +2,7 @@ name: B2B Alfamidi Daily Branch Sell Out
 
 on:
   schedule:
-    - cron: '0 */2 * * *'
+    - cron: '0 0 * * *'
   workflow_dispatch:
 
 jobs:
